@@ -5,18 +5,47 @@
         id: number;
         title: string;
         description: string;
-        publisher_name?: string;
-        category_name?: string;
+        publisher?: { id: number; name: string };
+        category?: { id: number; name: string };
+        starRating?: number;
+    }
+
+    interface Publisher {
+        id: number;
+        name: string;
+    }
+
+    interface Category {
+        id: number;
+        name: string;
     }
 
     export let games: Game[] = [];
     let loading = true;
     let error: string | null = null;
+    let publishers: Publisher[] = [];
+    let categories: Category[] = [];
+    let selectedPublisherId: string = '';
+    let selectedCategoryId: string = '';
 
     const fetchGames = async () => {
         loading = true;
         try {
-            const response = await fetch('/api/games');
+            let url = '/api/games';
+            const params = new URLSearchParams();
+            
+            if (selectedPublisherId) {
+                params.append('publisher_id', selectedPublisherId);
+            }
+            if (selectedCategoryId) {
+                params.append('category_id', selectedCategoryId);
+            }
+            
+            if (params.toString()) {
+                url += '?' + params.toString();
+            }
+
+            const response = await fetch(url);
             if(response.ok) {
                 games = await response.json();
             } else {
@@ -29,13 +58,90 @@
         }
     };
 
+    const fetchPublishers = async () => {
+        try {
+            const response = await fetch('/api/publishers');
+            if(response.ok) {
+                publishers = await response.json();
+            }
+        } catch (err) {
+            console.error('Failed to fetch publishers:', err);
+        }
+    };
+
+    const fetchCategories = async () => {
+        try {
+            const response = await fetch('/api/categories');
+            if(response.ok) {
+                categories = await response.json();
+            }
+        } catch (err) {
+            console.error('Failed to fetch categories:', err);
+        }
+    };
+
+    const clearFilters = () => {
+        selectedPublisherId = '';
+        selectedCategoryId = '';
+        fetchGames();
+    };
+
+    const handleFilterChange = () => {
+        fetchGames();
+    };
+
     onMount(() => {
+        fetchPublishers();
+        fetchCategories();
         fetchGames();
     });
 </script>
 
 <div>
-    <h2 class="text-2xl font-medium mb-6 text-slate-100">Featured Games</h2>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+        <h2 class="text-2xl font-medium text-slate-100">Featured Games</h2>
+        
+        <!-- Filter Controls -->
+        <div class="flex flex-col sm:flex-row gap-3">
+            <div class="min-w-0 flex-1 sm:min-w-[160px]">
+                <select 
+                    bind:value={selectedPublisherId} 
+                    on:change={handleFilterChange}
+                    class="w-full px-3 py-2 text-sm rounded-lg bg-slate-800/80 border border-slate-600 text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                    data-testid="publisher-filter"
+                >
+                    <option value="">All Publishers</option>
+                    {#each publishers as publisher}
+                        <option value={publisher.id.toString()}>{publisher.name}</option>
+                    {/each}
+                </select>
+            </div>
+            
+            <div class="min-w-0 flex-1 sm:min-w-[160px]">
+                <select 
+                    bind:value={selectedCategoryId} 
+                    on:change={handleFilterChange}
+                    class="w-full px-3 py-2 text-sm rounded-lg bg-slate-800/80 border border-slate-600 text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                    data-testid="category-filter"
+                >
+                    <option value="">All Categories</option>
+                    {#each categories as category}
+                        <option value={category.id.toString()}>{category.name}</option>
+                    {/each}
+                </select>
+            </div>
+            
+            {#if selectedPublisherId || selectedCategoryId}
+                <button 
+                    on:click={clearFilters}
+                    class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-slate-100 bg-slate-700/50 hover:bg-slate-700/80 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors whitespace-nowrap"
+                    data-testid="clear-filters-btn"
+                >
+                    Clear Filters
+                </button>
+            {/if}
+        </div>
+    </div>
     
     {#if loading}
         <!-- loading animation -->
@@ -81,16 +187,16 @@
                         <div class="relative z-10">
                             <h3 class="text-xl font-semibold text-slate-100 mb-2 group-hover:text-blue-400 transition-colors" data-testid="game-title">{game.title}</h3>
                             
-                            {#if game.category_name || game.publisher_name}
+                            {#if game.category || game.publisher}
                                 <div class="flex gap-2 mb-3">
-                                    {#if game.category_name}
+                                    {#if game.category}
                                         <span class="text-xs font-medium px-2.5 py-0.5 rounded bg-blue-900/60 text-blue-300" data-testid="game-category">
-                                            {game.category_name}
+                                            {game.category.name}
                                         </span>
                                     {/if}
-                                    {#if game.publisher_name}
+                                    {#if game.publisher}
                                         <span class="text-xs font-medium px-2.5 py-0.5 rounded bg-purple-900/60 text-purple-300" data-testid="game-publisher">
-                                            {game.publisher_name}
+                                            {game.publisher.name}
                                         </span>
                                     {/if}
                                 </div>

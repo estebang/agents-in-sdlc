@@ -139,6 +139,101 @@ class TestGamesRoutes(unittest.TestCase):
         for field in required_fields:
             self.assertIn(field, data[0])
 
+    def test_get_games_filtered_by_publisher(self) -> None:
+        """Test filtering games by publisher ID"""
+        # Get publisher ID from test data
+        publisher_id = 1  # First publisher
+        
+        # Act
+        response = self.client.get(f'{self.GAMES_API_PATH}?publisher_id={publisher_id}')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(data, list)
+        
+        # Should only return games from the specified publisher
+        for game in data:
+            self.assertEqual(game['publisher']['id'], publisher_id)
+
+    def test_get_games_filtered_by_category(self) -> None:
+        """Test filtering games by category ID"""
+        # Get category ID from test data
+        category_id = 1  # First category
+        
+        # Act
+        response = self.client.get(f'{self.GAMES_API_PATH}?category_id={category_id}')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(data, list)
+        
+        # Should only return games from the specified category
+        for game in data:
+            self.assertEqual(game['category']['id'], category_id)
+
+    def test_get_games_filtered_by_publisher_and_category(self) -> None:
+        """Test filtering games by both publisher and category ID"""
+        # Get IDs from test data
+        publisher_id = 1  # First publisher
+        category_id = 1   # First category
+        
+        # Act
+        response = self.client.get(f'{self.GAMES_API_PATH}?publisher_id={publisher_id}&category_id={category_id}')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(data, list)
+        
+        # Should only return games matching both filters
+        for game in data:
+            self.assertEqual(game['publisher']['id'], publisher_id)
+            self.assertEqual(game['category']['id'], category_id)
+
+    def test_get_games_invalid_publisher_id(self) -> None:
+        """Test error handling for invalid publisher ID format"""
+        # Act
+        response = self.client.get(f'{self.GAMES_API_PATH}?publisher_id=invalid')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['error'], "Invalid publisher_id format")
+
+    def test_get_games_invalid_category_id(self) -> None:
+        """Test error handling for invalid category ID format"""
+        # Act
+        response = self.client.get(f'{self.GAMES_API_PATH}?category_id=invalid')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['error'], "Invalid category_id format")
+
+    def test_get_games_nonexistent_publisher_id(self) -> None:
+        """Test filtering with non-existent publisher ID returns empty list"""
+        # Act
+        response = self.client.get(f'{self.GAMES_API_PATH}?publisher_id=999')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 0)
+
+    def test_get_games_nonexistent_category_id(self) -> None:
+        """Test filtering with non-existent category ID returns empty list"""
+        # Act
+        response = self.client.get(f'{self.GAMES_API_PATH}?category_id=999')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 0)
+
     def test_get_game_by_id_success(self) -> None:
         """Test successful retrieval of a single game by ID"""
         # Get the first game's ID from the list endpoint
